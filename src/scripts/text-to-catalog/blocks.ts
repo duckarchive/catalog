@@ -2,7 +2,7 @@ import { isCodesLine } from "./lines";
 import { parseChurchNameWithPlace } from "./parse";
 
 const confessionTextToBlocks = (text: string): Block[] => {
-  const lines = text.split("\n");
+  const lines = text.split("\n").filter(el => /^\d+/.test(el));
   const blocks: string[][] = [];
   let currentBlock: string[] = [];
   let prevNumber = -1;
@@ -11,7 +11,7 @@ const confessionTextToBlocks = (text: string): Block[] => {
     const match = line.match(/^(\d+)/);
     if (match) {
       const currNumber = parseInt(match[1]);
-      if (prevNumber < currNumber) {
+      if (prevNumber <= currNumber) {
         currentBlock.push(line);
         prevNumber = currNumber;
       } else {
@@ -20,7 +20,7 @@ const confessionTextToBlocks = (text: string): Block[] => {
         prevNumber = currNumber;
       }
     } else {
-      currentBlock.push(line);
+      console.log("No number in line", line);
     }
   });
 
@@ -28,7 +28,9 @@ const confessionTextToBlocks = (text: string): Block[] => {
     blocks.push(currentBlock);
   }
 
-  return blocks.map(blockLines => {
+  const results: Block[] = [];
+
+  blocks.forEach(blockLines => {
     const blockDataEndPos = blockLines.findIndex(isCodesLine);
     const result: Block = {
       country: "",
@@ -40,7 +42,7 @@ const confessionTextToBlocks = (text: string): Block[] => {
     };
     if (blockDataEndPos === -1) {
       console.log("No data lines in block", blockLines);
-      return result;
+      return results.push(result);
     }
 
     result.lines = blockLines.slice(blockDataEndPos, blockLines.length);
@@ -52,6 +54,12 @@ const confessionTextToBlocks = (text: string): Block[] => {
       result.churchAdministration = churchAdministration;
       result.churchName = parsedChurch.churchName;
       result.place = parsedChurch.place;
+      additionalPlaces.split(",").forEach(place => {
+        results.push({
+          ...result,
+          place: place.trim()
+        });
+      });
     } else if (blockDataLines.length === 3) {
       const [state, churchAdministration, churchNameWithPlace] = blockDataLines;
       const parsedChurch = parseChurchNameWithPlace(churchNameWithPlace);
@@ -63,8 +71,10 @@ const confessionTextToBlocks = (text: string): Block[] => {
       console.log("Unexpected block data lines", blockDataLines, blockLines);
     }
 
-    return result;
+    results.push(result);
   });
+
+  return results;
 };
 
 export default confessionTextToBlocks;
