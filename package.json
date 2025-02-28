@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "build": "tsc",
-    "parse:pdf-to-text": "node dist/scripts/pdf-to-text/index.js"
+    "parse:pdf-to-text": "node dist/pdf-to-text/index.js",
+    "parse:text-to-catalog": "node dist/text-to-catalog/index.js"
   },
   "devDependencies": {
     "@types/node": "^16.18.126",
