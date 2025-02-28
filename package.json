@@ -5,12 +5,15 @@
   "main": "src/index.js",
   "scripts": {
     "build": "tsc",
+    "dev": "nodemon",
     "parse:pdf-to-text": "node dist/pdf-to-text/index.js",
     "parse:text-to-catalog": "node dist/text-to-catalog/index.js"
   },
   "devDependencies": {
     "@types/node": "^16.18.126",
     "@types/pdf-parse": "^1.1.4",
+    "nodemon": "^3.1.9",
+    "tsx": "^4.19.3",
     "typescript": "^4.5.4"
   },
   "repository": {

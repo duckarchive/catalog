@@ -1,3 +1,4 @@
+import { Confession } from "./confessions";
 import { parseCode } from "./parse";
 
 export const isCodesLine = (line: string): boolean => {
@@ -35,15 +36,15 @@ const codesLineToData = (line: string): LineCode[] => {
   // 6. Шлюб: 1841: ф. 35, оп. 10, спр. 94; 1844: ф. 193, оп. 1, спр. 193;
 
   const matches = line.match(
-    /^\d+\.\s?(народж|шлюб|смерт|сповід|розлу|списк[а-яїєґі ]+):\s?(.+)/i
+    /^\d+\.\s?((народж|шлюб|смерт|сповід|розлу|списк)[а-яїєґі ]+):\s?(.+)/i
   );
   if (matches === null) {
     return [];
   }
 
-  const [, recordType, data] = matches;
+  const [, recordType, _, recordLine] = matches;
   const result: LineCode[] = [];
-  data.split(";").forEach((yearData) => {
+  recordLine.split(";").forEach((yearData) => {
     try {
       const [year, rest] = yearData.split(":");
       year.split(",").forEach((y) => {
@@ -67,9 +68,12 @@ const codesLineToData = (line: string): LineCode[] => {
 
 const blockToData = (
   block: Block,
-  confession: string,
+  confession: Confession,
   archive: string
 ): FullCode[][] => {
+  if (confession === Confession.BAPTISM) {
+    console.log("let's see", block);
+  }
   const lines = block.lines;
   return lines.map((line) => {
     if (isCodesLine(line)) {
