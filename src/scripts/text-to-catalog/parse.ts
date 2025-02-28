@@ -1,17 +1,6 @@
 export const parseChurchNameWithPlace = (line: string): Pick<Block, "churchName" | "place"> => {
-  // const match = line.match(/\d+\.\s(.+),\sс\.\s(.+)/);
-  // if (match) {
-  //   return {
-  //     churchName: match[1],
-  //     place: match[2]
-  //   };
-  // }
-
-  // return {
-  //   churchName: "",
-  //   place: ""
-  // };
-  return { churchName: line, place: "" };
+  const [churchName, ...place] = line.split(/,|:/).map(el => el.trim());
+  return { churchName, place: place.join(" ") };
 }
 
 const latin2cyrillic = (str: string): string => {
