@@ -3,6 +3,8 @@ import * as path from 'path';
 import splitByConfessions from './confessions';
 import splitByArchives from './archives';
 import mergePages from './merge-pages';
+import blockToData from './lines';
+import confessionTextToBlocks from './blocks';
 
 const assetsFolder = path.join('assets');
 const outputFolder = path.join('temp');
@@ -43,6 +45,15 @@ fs.readdir(assetsFolder, (err, files) => {
                 console.error('Error writing file:', outputFilePath, err);
               } else {
                 console.log('File saved:', outputFilePath);
+              }
+            });
+            const outputDataFilePath = path.join(archiveFolder, `${confession}.json`);
+            const confessionBlocks = confessionTextToBlocks(confessionChunk).map(block => blockToData(block, confession, archive));
+            fs.writeFile(outputDataFilePath, JSON.stringify(confessionBlocks, null, 2), 'utf8', err => {
+              if (err) {
+                console.error('Error writing json file:', outputDataFilePath, err);
+              } else {
+                console.log('File json saved:', outputDataFilePath);
               }
             });
           });
