@@ -1,9 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import splitByConfessions from './confessions';
+import splitByArchives from './archives';
+import mergePages from './merge-pages';
 
 const assetsFolder = path.join('assets');
-const outputFolder = path.join('temp/confessions');
+const outputFolder = path.join('temp');
 
 // Ensure the output directory exists
 if (!fs.existsSync(outputFolder)) {
@@ -17,7 +19,7 @@ fs.readdir(assetsFolder, (err, files) => {
     return;
   }
 
-  files.forEach(file => {
+  files.slice(0,2).forEach(file => {
     if (path.extname(file) === '.txt') {
       const filePath = path.join(assetsFolder, file);
       fs.readFile(filePath, 'utf8', (err, data) => {
@@ -25,16 +27,24 @@ fs.readdir(assetsFolder, (err, files) => {
           console.error('Error reading file:', filePath, err);
           return;
         }
+        const archives = splitByArchives(data);
+        archives.forEach(({ archive, chunk: archiveChunk }) => {
+          const archiveFolder = path.join(outputFolder, archive);
+          if (!fs.existsSync(archiveFolder)) {
+            fs.mkdirSync(archiveFolder, { recursive: true });
+          }
 
-        const confessions = splitByConfessions(data);
-        confessions.forEach(({ confession, chunk }) => {
-          const outputFilePath = path.join(outputFolder, `${path.basename(file, '.txt')}_${confession}.txt`);
-          fs.writeFile(outputFilePath, chunk, 'utf8', err => {
-            if (err) {
-              console.error('Error writing file:', outputFilePath, err);
-            } else {
-              console.log('File saved:', outputFilePath);
-            }
+          const archiveChunkMergedPages = mergePages(archiveChunk);
+          const confessions = splitByConfessions(archiveChunkMergedPages);
+          confessions.forEach(({ confession, chunk: confessionChunk }) => {
+            const outputFilePath = path.join(archiveFolder, `${confession}.txt`);
+            fs.writeFile(outputFilePath, confessionChunk, 'utf8', err => {
+              if (err) {
+                console.error('Error writing file:', outputFilePath, err);
+              } else {
+                console.log('File saved:', outputFilePath);
+              }
+            });
           });
         });
       });
