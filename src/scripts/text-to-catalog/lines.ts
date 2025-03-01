@@ -44,13 +44,17 @@ const codesLineToData = (line: string): LineCode[] => {
 
   const [, recordType, _, recordLine] = matches;
   const result: LineCode[] = [];
-  recordLine.split(";").forEach((yearData) => {
+  recordLine.split(";").filter(Boolean).forEach((yearData) => {
     try {
       const [year, rest] = yearData.split(":");
       year.split(",").forEach((y) => {
         const [f, d, c] = parseCases(rest);
         if (y.includes("-") || y.includes("–")) {
           const [from, to] = y.split(/-|–/).map((s) => parseInt(s.trim()));
+          if (isNaN(from) || isNaN(to) || from > to || from < 1000 || to > 2000) {
+            console.error("Invalid year range", y);
+            return;
+          }
           for (let i = from; i <= to; i++) {
             result.push({ year: i, recordType, f, d, c });
           }
@@ -59,7 +63,10 @@ const codesLineToData = (line: string): LineCode[] => {
         }
       });
     } catch (err) {
-      console.error(yearData, err);
+      console.error((err as Error).message, {
+        recordLine,
+        yearData,
+      });
     }
   });
 
@@ -71,9 +78,6 @@ const blockToData = (
   confession: Confession,
   archive: string
 ): FullCode[][] => {
-  if (confession === Confession.BAPTISM) {
-    console.log("let's see", block);
-  }
   const lines = block.lines;
   return lines.map((line) => {
     if (isCodesLine(line)) {

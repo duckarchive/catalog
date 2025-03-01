@@ -2,9 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import splitByConfessions from "./confessions";
 import splitByArchives from "./archives";
-import mergePages from "./merge-pages";
 import blockToData from "./lines";
 import confessionTextToBlocks from "./blocks";
+import cleanup from "./cleanup";
 
 const assetsFolder = path.join("assets");
 const outputFolder = path.join("temp");
@@ -36,8 +36,8 @@ fs.readdir(assetsFolder, (err, files) => {
             fs.mkdirSync(archiveFolder, { recursive: true });
           }
 
-          const archiveChunkMergedPages = mergePages(archiveChunk);
-          const confessions = splitByConfessions(archiveChunkMergedPages);
+          const archiveChunkCleanedUp = cleanup(archiveChunk);
+          const confessions = splitByConfessions(archiveChunkCleanedUp);
           confessions.forEach(({ confession, chunk: confessionChunk }) => {
             const outputFilePath = path.join(
               archiveFolder,
