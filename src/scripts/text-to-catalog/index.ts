@@ -55,7 +55,12 @@ fs.readdir(assetsFolder, (err, files) => {
               `${confession}.json`
             );
             const confessionBlocks = confessionTextToBlocks(confessionChunk)
-              .map((block) => blockToData(block, confession, archive));
+              .map((block) =>
+                blockToData(block, confession, archive).filter(
+                  (data) => data.length > 0
+                )
+              )
+              .flat();
             fs.writeFile(
               outputDataFilePath,
               JSON.stringify(confessionBlocks, null, 2),
