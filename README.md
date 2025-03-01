@@ -1,53 +1,29 @@
-# TypeScript Node PDF/A Text Extraction
+# Digital catalog of metrical books in Ukrainian archives
 
-This project is a TypeScript-based Node.js application that extracts text from PDF/A files. It demonstrates how to read PDF/A files from a specified assets folder and extract their text content using a PDF parsing library.
+Table-formatted catalog based on the book series ["Зведений каталог метричних книг, що зберігаються в державних архівах України"](http://resource.history.org.ua/cgi-bin/eiu/history.exe?&I21DBN=ELIB&P21DBN=ELIB&S21STN=1&S21REF=10&S21FMT=brief_elib&C21COM=S&S21CNR=20&S21P01=0&S21SRW=nz&S21P02=0&S21P03=T=&S21COLORTERMS=0&S21STR=%D0%97%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B9%20%D0%BA%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3%20%D0%BC%D0%B5%D1%82%D1%80%D0%B8%D1%87%D0%BD%D0%B8%D1%85%20%D0%BA%D0%BD%D0%B8%D0%B3,%20%D1%89%D0%BE%20%D0%B7%D0%B1%D0%B5%D1%80%D1%96%D0%B3%D0%B0%D1%8E%D1%82%D1%8C%D1%81%D1%8F%20%D0%B2%20%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D0%B2%D0%BD%D0%B8%D1%85%20%D0%B0%D1%80%D1%85%D1%96%D0%B2%D0%B0%D1%85%20%D0%A3%D0%BA%D1%80%D0%B0%D1%97%D0%BD%D0%B8). Check `assets` folder for PDF copies.
 
-## Project Structure
+## How to use
 
-```
-typescript-node-parser
-├── src
-│   ├── index.ts          # Entry point of the application
-│   ├── parser.ts         # Contains the text extraction logic
-│   └── assets
-│       └── example.pdf   # Sample PDF/A file for testing
-├── package.json          # NPM configuration file
-├── tsconfig.json         # TypeScript configuration file
-└── README.md             # Project documentation
-```
+1. Open `catalog` folder.
+2. Download the CSV file with archive you are interested in.
+3. Open the file with any spreadsheet software (e.g. Microsoft Excel, Google Sheets).
+4. Use filters to search for specific records.
 
-## Setup Instructions
+## Found a mistake?
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd typescript-node-parser
-   ```
+If you found a mistake in the CSV files catalog, please create an issue with required information or create a pull request with the correct data.
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+## Development
 
-3. **Compile TypeScript files:**
-   ```bash
-   npx tsc
-   ```
+> Note: This project is not in development stage, because the data is already extracted and formatted.
 
-4. **Run the application:**
-   ```bash
-   node dist/index.js
-   ```
+This repo contain the source code that used to extract and format data from the PDF files. If you want to contribute or modify the code, follow the steps below:
 
-## Usage
+1. Clone the repository.
+2. Install dependencies with `pnpm install`.
+3. Scripts:
+  - `parse:pdf-to-text` - extract data from PDF files to text files.
+  - `parse:text-to-catalog` - parse text files to CSV files.
+  - `dev` - run `parse:text-to-catalog` with `nodemon` and `tsx` for debugging.
+  - `build` - build the project.
 
-The application will read the `example.pdf` file located in the `src/assets` folder and extract the text content. You can modify the `src/assets` folder to include your own PDF/A files for testing.
-
-## Dependencies
-
-- TypeScript
-- A PDF parsing library (e.g., pdf-lib or pdf-parse)
-
-## License
-
-This project is licensed under the MIT License.
