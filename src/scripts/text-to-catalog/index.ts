@@ -21,8 +21,8 @@ fs.readdir(assetsFolder, (err, files) => {
     return;
   }
 
-  files.slice(0, 2).forEach((file) => {
-    if (path.extname(file) === ".txt") {
+  const textFiles = files.filter((file) => path.extname(file) === ".txt");
+  textFiles.slice(0, 1).forEach((file) => {
       const filePath = path.join(assetsFolder, file);
       fs.readFile(filePath, "utf8", (err, data) => {
         if (err) {
@@ -80,6 +80,5 @@ fs.readdir(assetsFolder, (err, files) => {
           });
         });
       });
-    }
   });
 });
