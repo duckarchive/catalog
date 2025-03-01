@@ -1,6 +1,6 @@
 export const parseChurchNameWithPlace = (line: string): Pick<Block, "churchName" | "place"> => {
-  const [churchName, ...place] = line.split(/,|:/).map(el => el.trim());
-  return { churchName, place: place.join(" ") };
+  // TODO: Add proper parsing
+  return { churchName: line.trim(), place: "" };
 }
 
 const latin2cyrillic = (str: string): string => {
