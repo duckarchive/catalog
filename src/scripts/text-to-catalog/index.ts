@@ -1,84 +1,138 @@
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs/promises";
+import fsSync from "fs";
+import path from "path";
 import splitByConfessions from "./confessions";
 import splitByArchives from "./archives";
 import blockToData from "./lines";
 import confessionTextToBlocks from "./blocks";
 import cleanup from "./cleanup";
 
+const DEBUG = true;
 const assetsFolder = path.join("assets");
 const outputFolder = path.join("temp");
 
-// Ensure the output directory exists
-if (!fs.existsSync(outputFolder)) {
-  fs.mkdirSync(outputFolder, { recursive: true });
-}
-
-// Read all txt files from the assets folder
-fs.readdir(assetsFolder, (err, files) => {
-  if (err) {
-    console.error("Error reading assets folder:", err);
-    return;
+const run = async () => {
+  // Ensure the output directory exists
+  if (DEBUG && !fsSync.existsSync(outputFolder)) {
+    await fs.mkdir(outputFolder, { recursive: true });
   }
 
-  const textFiles = files.filter((file) => path.extname(file) === ".txt");
-  textFiles.slice(0, 1).forEach((file) => {
-      const filePath = path.join(assetsFolder, file);
-      fs.readFile(filePath, "utf8", (err, data) => {
-        if (err) {
-          console.error("Error reading file:", filePath, err);
-          return;
-        }
-        const archives = splitByArchives(data);
-        archives.forEach(({ archive, chunk: archiveChunk }) => {
-          const archiveFolder = path.join(outputFolder, archive);
-          if (!fs.existsSync(archiveFolder)) {
-            fs.mkdirSync(archiveFolder, { recursive: true });
-          }
+  // Read all files from the assets folder
+  const assetFiles = await fs.readdir(assetsFolder);
 
-          const archiveChunkCleanedUp = cleanup(archiveChunk);
-          const confessions = splitByConfessions(archiveChunkCleanedUp);
-          confessions.forEach(({ confession, chunk: confessionChunk }) => {
-            const outputFilePath = path.join(
-              archiveFolder,
-              `${confession}.txt`
-            );
-            fs.writeFile(outputFilePath, confessionChunk, "utf8", (err) => {
-              if (err) {
-                console.error("Error writing file:", outputFilePath, err);
-              } else {
-                console.log("File saved:", outputFilePath);
-              }
-            });
-            const outputDataFilePath = path.join(
-              archiveFolder,
-              `${confession}.json`
-            );
-            const confessionBlocks = confessionTextToBlocks(confessionChunk)
-              .map((block) =>
-                blockToData(block, confession, archive).filter(
-                  (data) => data.length > 0
-                )
-              )
-              .flat();
-            fs.writeFile(
-              outputDataFilePath,
-              JSON.stringify(confessionBlocks, null, 2),
-              "utf8",
-              (err) => {
-                if (err) {
-                  console.error(
-                    "Error writing json file:",
-                    outputDataFilePath,
-                    err
-                  );
-                } else {
-                  console.log("File json saved:", outputDataFilePath);
-                }
-              }
-            );
-          });
-        });
-      });
-  });
+  // Filter out only the text files
+  const textFiles = assetFiles.filter((file) => path.extname(file) === ".txt");
+
+  if (!textFiles.length) {
+    throw new Error(
+      'No text files found in the assets folder. Run "parse:pdf-to-text" npm script to extract text from PDFs.'
+    );
+  }
+
+  for (const textFile of textFiles) {
+    // Read the content of the text file
+    const textFilePath = path.join(assetsFolder, textFile);
+    const textFileContent = await fs.readFile(textFilePath, "utf8");
+
+    if (!textFileContent) {
+      throw new Error(`Empty file: ${textFilePath}`);
+    }
+
+    // Split the text file content to archive chunks
+    const archives = splitByArchives(textFileContent);
+
+    for (const { archive, chunk: archiveChunk } of archives) {
+      if (DEBUG) {
+        const stepFolder = path.join(outputFolder, "001_archive-chunks");
+        if (!fsSync.existsSync(stepFolder)) {
+          await fs.mkdir(stepFolder, { recursive: true });
+        }
+        await fs.writeFile(
+          path.join(stepFolder, `${archive}.txt`),
+          archiveChunk,
+          "utf8"
+        );
+      }
+
+      // Clean up the archive chunk
+      const archiveChunkCleanedUp = cleanup(archiveChunk);
+      if (DEBUG) {
+        const stepFolder = path.join(
+          outputFolder,
+          "002_archive-chunks-cleaned-up"
+        );
+        if (!fsSync.existsSync(stepFolder)) {
+          await fs.mkdir(stepFolder, { recursive: true });
+        }
+        await fs.writeFile(
+          path.join(stepFolder, `${archive}.txt`),
+          archiveChunkCleanedUp,
+          "utf8"
+        );
+      }
+
+      // Split the archive chunk to confessions
+      const confessions = splitByConfessions(archiveChunkCleanedUp);
+      for (const { confession, chunk: confessionChunk } of confessions) {
+        if (DEBUG) {
+          const stepFolder = path.join(
+            outputFolder,
+            "003_confession-chunks",
+            archive
+          );
+          if (!fsSync.existsSync(stepFolder)) {
+            await fs.mkdir(stepFolder, { recursive: true });
+          }
+          await fs.writeFile(
+            path.join(stepFolder, `${confession}.txt`),
+            confessionChunk,
+            "utf8"
+          );
+        }
+
+        // Convert the confession chunk to data blocks
+        const confessionBlocks = confessionTextToBlocks(confessionChunk);
+        if (DEBUG) {
+          const stepFolder = path.join(
+            outputFolder,
+            "004_confession-chunk-blocks",
+            archive
+          );
+          if (!fsSync.existsSync(stepFolder)) {
+            await fs.mkdir(stepFolder, { recursive: true });
+          }
+          await fs.writeFile(
+            path.join(stepFolder, `${confession}.json`),
+            JSON.stringify(confessionBlocks, null, 2),
+            "utf8"
+          );
+        }
+
+        // Convert the blocks to data
+        const parsedData = confessionBlocks
+          .map((block) => blockToData(block, confession, archive))
+          .filter((data) => data.length > 0)
+          .flat();
+        if (DEBUG) {
+          const stepFolder = path.join(
+            outputFolder,
+            "005_confession-chunk-data",
+            archive
+          );
+          if (!fsSync.existsSync(stepFolder)) {
+            await fs.mkdir(stepFolder, { recursive: true });
+          }
+          await fs.writeFile(
+            path.join(stepFolder, `${confession}.json`),
+            JSON.stringify(parsedData, null, 2),
+            "utf8"
+          );
+        }
+      }
+    }
+  }
+};
+
+run().catch((err) => {
+  console.error("Error running script:", err);
 });
