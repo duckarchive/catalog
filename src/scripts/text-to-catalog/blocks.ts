@@ -1,9 +1,11 @@
 import { isCodesLine } from "./lines";
 import { parseChurchNameWithPlace } from "./parse";
 
-const confessionTextToBlocks = (text: string): Block[] => {
+const confessionTextToBlocks = (text: string): [Block[], ParseError[]] => {
   const lines = text.split("\n").filter(el => /^\d+/.test(el));
   const blocks: string[][] = [];
+  const results: Block[] = [];
+  const errors: ParseError[] = [];
   let currentBlock: string[] = [];
   let prevNumber = -1;
 
@@ -20,15 +22,17 @@ const confessionTextToBlocks = (text: string): Block[] => {
         prevNumber = currNumber;
       }
     } else {
-      console.log("No number in line", line);
+      errors.push({
+        fullLine: line,
+        part: "",
+        message: "No number in line"
+      });
     }
   });
 
   if (currentBlock.length > 0) {
     blocks.push(currentBlock);
   }
-
-  const results: Block[] = [];
 
   blocks.forEach(blockLines => {
     const blockDataEndPos = blockLines.findIndex(isCodesLine);
@@ -41,7 +45,11 @@ const confessionTextToBlocks = (text: string): Block[] => {
       lines: []
     };
     if (blockDataEndPos === -1) {
-      console.log("No data lines in block", blockLines);
+      errors.push({
+        fullLine: blockLines.join("\n"),
+        part: "",
+        message: "No codes line in block"
+      });
       return results.push(result);
     }
 
@@ -68,13 +76,17 @@ const confessionTextToBlocks = (text: string): Block[] => {
       result.churchName = parsedChurch.churchName;
       result.place = parsedChurch.place;
     } else {
-      console.log("Unexpected block data lines", blockDataLines, blockLines);
+      errors.push({
+        fullLine: blockLines.join("\n"),
+        part: blockDataLines.join("\n"),
+        message: "Unexpected block data lines"
+      });
     }
 
     results.push(result);
   });
 
-  return results;
+  return [results, errors];
 };
 
 export default confessionTextToBlocks;

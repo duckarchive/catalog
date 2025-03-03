@@ -7,7 +7,7 @@ import blockToData from "./lines";
 import confessionTextToBlocks from "./blocks";
 import cleanup from "./cleanup";
 
-const DEBUG = true;
+const DEBUG = process.env.DEBUG === "true";
 const assetsFolder = path.join("assets");
 const outputFolder = path.join("temp");
 
@@ -91,8 +91,25 @@ const run = async () => {
         }
 
         // Convert the confession chunk to data blocks
-        const confessionBlocks = confessionTextToBlocks(confessionChunk);
+        const [confessionBlocks, confessionErrors] =
+          confessionTextToBlocks(confessionChunk);
         if (DEBUG) {
+          if (confessionErrors.length) {
+            const errorFolder = path.join(
+              outputFolder,
+              "000_errors",
+              "004",
+              archive
+            );
+            if (!fsSync.existsSync(errorFolder)) {
+              await fs.mkdir(errorFolder, { recursive: true });
+            }
+            await fs.writeFile(
+              path.join(errorFolder, `${confession}.json`),
+              JSON.stringify(confessionErrors, null, 2),
+              "utf8"
+            );
+          }
           const stepFolder = path.join(
             outputFolder,
             "004_confession-chunk-blocks",
@@ -109,11 +126,37 @@ const run = async () => {
         }
 
         // Convert the blocks to data
-        const parsedData = confessionBlocks
-          .map((block) => blockToData(block, confession, archive))
-          .filter((data) => data.length > 0)
+        const parseErrors: ParseError[] = [];
+        const parseData = confessionBlocks
+          .map((block) => {
+            const filtered = blockToData(block, confession, archive).filter(
+              Boolean
+            ) as [FullCode[], ParseError[]][];
+            return filtered
+              .map(([data, error]) => {
+                parseErrors.push(...error);
+                return data;
+              })
+              .flat();
+          })
           .flat();
         if (DEBUG) {
+          if (parseErrors.length) {
+            const errorFolder = path.join(
+              outputFolder,
+              "000_errors",
+              "005",
+              archive
+            );
+            if (!fsSync.existsSync(errorFolder)) {
+              await fs.mkdir(errorFolder, { recursive: true });
+            }
+            await fs.writeFile(
+              path.join(errorFolder, `${confession}.json`),
+              JSON.stringify(parseErrors, null, 2),
+              "utf8"
+            );
+          }
           const stepFolder = path.join(
             outputFolder,
             "005_confession-chunk-data",
@@ -124,7 +167,7 @@ const run = async () => {
           }
           await fs.writeFile(
             path.join(stepFolder, `${confession}.json`),
-            JSON.stringify(parsedData, null, 2),
+            JSON.stringify(parseData, null, 2),
             "utf8"
           );
         }

@@ -25,63 +25,93 @@ const deLine = (line: string): string => {
   return line.replace(/^\d+\.\s?/, "");
 };
 
-const parseCases = (str: string): string[] =>
-  str
-    .replace(/ф|оп|с?пр/gi, "")
-    .split(",")
-    .map((s) => parseCode(s));
-
-const codesLineToData = (line: string): LineCode[] => {
+const codesLineToData = (line: string): [LineCode[], ParseError[]] => {
   // 5. Народження: 1841: ф. 35, оп. 10, спр. 94; 1844: ф. 193, оп. 1, спр. 193;
   // 6. Шлюб: 1841: ф. 35, оп. 10, спр. 94; 1844: ф. 193, оп. 1, спр. 193;
 
   const matches = line.match(
-    /^\d+\.\s?((народж|шлюб|смерт|сповід|розлу|списк)[а-яїєґі ]{0,}):\s?(.+)/i
+    /^\d+\.\s?((народж|шлюб|смерт|сповід|розлу|розір|списк)[а-яїєґі ]{0,}):\s?(.+)/i
   );
   if (matches === null) {
-    return [];
+    return [[], []];
   }
 
   const [, recordType, _, recordLine] = matches;
   const result: LineCode[] = [];
-  recordLine.split(";").filter(Boolean).forEach((yearData) => {
-    try {
-      const [year, rest] = yearData.split(":");
-      year.split(",").forEach((y) => {
-        const [f, d, c] = parseCases(rest);
-        if (y.includes("-") || y.includes("–")) {
-          const [from, to] = y.split(/-|–/).map((s) => parseInt(s.trim()));
-          if (isNaN(from) || isNaN(to) || from > to || from < 1000 || to > 2000) {
-            console.error("Invalid year range", y);
+  const errors: ParseError[] = [];
+
+  recordLine
+    .split(";")
+    .filter(Boolean)
+    .forEach((yearData) => {
+      try {
+        const [year, rest] = yearData.split(":");
+        year.split(",").forEach((y) => {
+          const codes = rest
+            .replace(/ф|оп|с?пр/gi, "")
+            .split(",")
+            .map((s) => {
+              try {
+                return parseCode(s);
+              } catch (err) {
+                errors.push({
+                  fullLine: recordLine,
+                  part: rest,
+                  message: (err as Error).message,
+                });
+                return "";
+              }
+            });
+
+          if (!codes.filter(Boolean).length) {
             return;
           }
-          for (let i = from; i <= to; i++) {
-            result.push({ year: i, recordType, f, d, c });
+          const [f, d, c] = codes;
+          if (y.includes("-") || y.includes("–")) {
+            const [from, to] = y.split(/-|–/).map((s) => parseInt(s.trim()));
+            if (
+              isNaN(from) ||
+              isNaN(to) ||
+              from > to ||
+              from < 1000 ||
+              to > 2000
+            ) {
+              errors.push({
+                fullLine: recordLine,
+                part: y,
+                message: "Invalid year range",
+              });
+              return;
+            }
+            for (let i = from; i <= to; i++) {
+              result.push({ year: i, recordType, f, d, c });
+            }
+          } else {
+            result.push({ year: parseInt(y.trim()), recordType, f, d, c });
           }
-        } else {
-          result.push({ year: parseInt(y.trim()), recordType, f, d, c });
-        }
-      });
-    } catch (err) {
-      console.error((err as Error).message, {
-        recordLine,
-        yearData,
-      });
-    }
-  });
+        });
+      } catch (err) {
+        errors.push({
+          fullLine: recordLine,
+          part: yearData,
+          message: (err as Error).message,
+        });
+      }
+    });
 
-  return result;
+  return [result, errors];
 };
 
 const blockToData = (
   block: Block,
   confession: Confession,
   archive: string
-): FullCode[][] => {
+): ([FullCode[], ParseError[]] | undefined)[] => {
   const lines = block.lines;
   return lines.map((line) => {
     if (isCodesLine(line)) {
-      return codesLineToData(line).map((data) => ({
+      const [linesData, linesErrors] = codesLineToData(line);
+      const fullCodes = linesData.map((data) => ({
         country: deLine(block.country || ""),
         state: deLine(block.state),
         place: deLine(block.place),
@@ -91,8 +121,9 @@ const blockToData = (
         a: archive,
         ...data,
       }));
+
+      return [fullCodes, linesErrors];
     }
-    return [];
   });
 };
 

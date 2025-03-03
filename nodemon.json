@@ -1,7 +1,6 @@
 {
   "watch": ["src"],
-  "ignore": ["src/**/*.test.ts"],
   "ext": "ts,mjs,js,json",
-  "exec": "tsx watch ./src/scripts/text-to-catalog",
+  "exec": "DEBUG=true tsx watch ./src/scripts/text-to-catalog",
   "legacyWatch": true
 }

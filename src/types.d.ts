@@ -19,3 +19,9 @@ interface FullCode extends LineCode, Omit<Block, 'lines'> {
   a: string; // archive
   confession: string;
 }
+
+interface ParseError {
+  fullLine: string;
+  part: string;
+  message: string;
+}
