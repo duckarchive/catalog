@@ -9,12 +9,18 @@ import cleanup from "./cleanup";
 
 const DEBUG = process.env.DEBUG === "true";
 const assetsFolder = path.join("assets");
-const outputFolder = path.join("temp");
+const tempFolder = path.join("temp");
+const catalogFolder = path.join("catalog");
 
 const run = async () => {
-  // Ensure the output directory exists
-  if (DEBUG && !fsSync.existsSync(outputFolder)) {
-    await fs.mkdir(outputFolder, { recursive: true });
+  // Ensure the catalog directory exists
+  if (!fsSync.existsSync(catalogFolder)) {
+    await fs.mkdir(catalogFolder, { recursive: true });
+  }
+
+  // Ensure the temp directory exists DEBUG mode
+  if (DEBUG && !fsSync.existsSync(tempFolder)) {
+    await fs.mkdir(tempFolder, { recursive: true });
   }
 
   // Read all files from the assets folder
@@ -43,7 +49,7 @@ const run = async () => {
 
     for (const { archive, chunk: archiveChunk } of archives) {
       if (DEBUG) {
-        const stepFolder = path.join(outputFolder, "001_archive-chunks");
+        const stepFolder = path.join(tempFolder, "001_archive-chunks");
         if (!fsSync.existsSync(stepFolder)) {
           await fs.mkdir(stepFolder, { recursive: true });
         }
@@ -58,7 +64,7 @@ const run = async () => {
       const archiveChunkCleanedUp = cleanup(archiveChunk);
       if (DEBUG) {
         const stepFolder = path.join(
-          outputFolder,
+          tempFolder,
           "002_archive-chunks-cleaned-up"
         );
         if (!fsSync.existsSync(stepFolder)) {
@@ -71,12 +77,14 @@ const run = async () => {
         );
       }
 
+      const archiveResults: FullCode[][] = [];
+
       // Split the archive chunk to confessions
       const confessions = splitByConfessions(archiveChunkCleanedUp);
       for (const { confession, chunk: confessionChunk } of confessions) {
         if (DEBUG) {
           const stepFolder = path.join(
-            outputFolder,
+            tempFolder,
             "003_confession-chunks",
             archive
           );
@@ -96,7 +104,7 @@ const run = async () => {
         if (DEBUG) {
           if (confessionErrors.length) {
             const errorFolder = path.join(
-              outputFolder,
+              tempFolder,
               "000_errors",
               "004",
               archive
@@ -111,7 +119,7 @@ const run = async () => {
             );
           }
           const stepFolder = path.join(
-            outputFolder,
+            tempFolder,
             "004_confession-chunk-blocks",
             archive
           );
@@ -143,7 +151,7 @@ const run = async () => {
         if (DEBUG) {
           if (parseErrors.length) {
             const errorFolder = path.join(
-              outputFolder,
+              tempFolder,
               "000_errors",
               "005",
               archive
@@ -158,7 +166,7 @@ const run = async () => {
             );
           }
           const stepFolder = path.join(
-            outputFolder,
+            tempFolder,
             "005_confession-chunk-data",
             archive
           );
@@ -171,7 +179,29 @@ const run = async () => {
             "utf8"
           );
         }
+
+        // JSON to CSV
+        archiveResults.push(parseData);
       }
+
+      const flattedResults = archiveResults.flat();
+
+      if (!flattedResults[0]) {
+        continue
+      }
+      const csvHeader = Object.keys(flattedResults[0]).join(",");
+      const csvData = flattedResults
+        .map((d) => {
+          return Object.values(d).join(",");
+        })
+        .join("\n");
+
+      const csv = `${csvHeader}\n${csvData}`;
+      const csvFilePath = path.join(
+        catalogFolder,
+        `${archive}.csv`
+      );
+      await fs.writeFile(csvFilePath, csv, "utf8");
     }
   }
 };
