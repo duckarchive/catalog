@@ -45,6 +45,13 @@ jobs:
           fi
           echo "release_tag=$tag" >> $GITHUB_OUTPUT
 
+      - name: Create Git tag if not exists
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.release_name.outputs.release_tag }}
+          git push origin ${{ steps.release_name.outputs.release_tag }}
+
       - name: 🚀 Create GitHub Release and upload ZIP
         uses: softprops/action-gh-release@v1
         with:
