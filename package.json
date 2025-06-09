@@ -1,6 +1,6 @@
 {
   "name": "acmb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A TypeScript project to extract text from PDF/A files.",
   "main": "src/index.js",
   "scripts": {
