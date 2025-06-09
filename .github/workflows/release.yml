@@ -1,10 +1,9 @@
 name: Build and Release CSV Catalog
 
 on:
-  workflow_dispatch:  # manually triggered
   push:
     tags:
-      - 'v*'          # auto-trigger on version tags like v1.0
+      - 'v*'          # Only trigger on existing version tags like v1.0, v2.3.4
 
 jobs:
   build-and-release:
@@ -36,27 +35,11 @@ jobs:
           mkdir -p dist
           zip -j dist/catalog.zip catalog/*.csv
 
-      - name: 🏷️ Determine release name
-        id: release_name
-        run: |
-          tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
-          if [ -z "$tag" ]; then
-            tag="release-$(date +'%Y-%m-%d')"
-          fi
-          echo "release_tag=$tag" >> $GITHUB_OUTPUT
-
-      - name: Create Git tag if not exists
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.release_name.outputs.release_tag }}
-          git push origin ${{ steps.release_name.outputs.release_tag }}
-
       - name: 🚀 Create GitHub Release and upload ZIP
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.release_name.outputs.release_tag }}
-          name: ${{ steps.release_name.outputs.release_tag }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           files: dist/catalog.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
