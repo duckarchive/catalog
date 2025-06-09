@@ -8,6 +8,7 @@ import confessionTextToBlocks from "./blocks";
 import cleanup from "./cleanup";
 
 const DEBUG = process.env.DEBUG === "true";
+const DELIMITER = ",";
 const assetsFolder = path.join("assets");
 const tempFolder = path.join("temp");
 const catalogFolder = path.join("catalog");
@@ -187,20 +188,22 @@ const run = async () => {
       const flattedResults = archiveResults.flat();
 
       if (!flattedResults[0]) {
-        continue
+        continue;
       }
-      const csvHeader = Object.keys(flattedResults[0]).join(",");
+      const csvHeader = Object.keys(flattedResults[0]).join(DELIMITER);
       const csvData = flattedResults
         .map((d) => {
-          return Object.values(d).join(",");
+          return Object.values(d)
+            .map((el) => {
+              const str = el == null ? "" : String(el);
+              return str.includes(",") ? `"${str}"` : str;
+            })
+            .join(DELIMITER);
         })
         .join("\n");
 
       const csv = `${csvHeader}\n${csvData}`;
-      const csvFilePath = path.join(
-        catalogFolder,
-        `${archive}.csv`
-      );
+      const csvFilePath = path.join(catalogFolder, `${archive}.csv`);
       await fs.writeFile(csvFilePath, csv, "utf8");
     }
   }
