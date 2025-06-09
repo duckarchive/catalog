@@ -1,0 +1,55 @@
+name: Build and Release CSV Catalog
+
+on:
+  workflow_dispatch:  # manually triggered
+  push:
+    tags:
+      - 'v*'          # auto-trigger on version tags like v1.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: |
+          corepack enable
+          pnpm install
+
+      - name: 🏗️ Build project
+        run: pnpm build
+
+      - name: 📝 Run data generation
+        run: pnpm parse:text-to-catalog
+
+      - name: 📁 Create ZIP archive of all CSVs
+        run: |
+          mkdir -p dist
+          zip -j dist/catalog.zip catalog/*.csv
+
+      - name: 🏷️ Determine release name
+        id: release_name
+        run: |
+          tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -z "$tag" ]; then
+            tag="release-$(date +'%Y-%m-%d')"
+          fi
+          echo "release_tag=$tag" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Create GitHub Release and upload ZIP
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release_name.outputs.release_tag }}
+          name: ${{ steps.release_name.outputs.release_tag }}
+          files: dist/catalog.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

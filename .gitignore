@@ -8,6 +8,7 @@ node_modules/
 dist/
 build/
 temp/
+catalog/
 
 # Ignore environment variable files
 .env
